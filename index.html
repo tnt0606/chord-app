@@ -56,26 +56,21 @@
           <button id="suggestCapoBtn" class="bg-emerald-600 text-white px-3 py-1.5 rounded text-sm hover:bg-emerald-700">一番楽なカポを提案</button>
           <button id="breakLineBtn" class="bg-sky-600 text-white px-3 py-1.5 rounded text-sm hover:bg-sky-700">改行</button>
           <button id="clearAllBtn" class="bg-red-600 text-white px-3 py-1.5 rounded text-sm hover:bg-red-700">すべて削除</button>
+          <button id="fullscreenBtn" class="bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700">全画面</button>
           <button id="saveListBtn" class="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700">保存</button>
           <button id="saveAsNewBtn" class="bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 hidden">新規保存</button>
           <button id="updateBtn" class="bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-700 hidden">更新</button>
         </div>
       </div>
-      <ul id="myList" class="space-y-2 min-h-[160px] border border-dashed border-slate-300 rounded p-3"></ul>
+      <div id="myList" class="min-h-[160px] border border-dashed border-slate-300 rounded p-3"></div>
       <p class="text-xs text-slate-500 mt-2">ドラッグ&ドロップで順序変更、「改行」で区切り挿入、「保存」でリスト保存。</p>
     </section>
 
-    <section id="previewSection" class="bg-white rounded-xl shadow p-5">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xl font-semibold text-slate-700">プレビュー</h2>
-        <button id="fullscreenBtn" class="bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700">全画面</button>
-      </div>
-      <div id="previewArea" class="grid grid-cols-5 gap-1.5 pb-4"></div>
     <section id="fullscreenModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
       <div class="flex items-center justify-center h-full p-4">
         <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-full overflow-y-auto">
           <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-bold">プレビュー（全画面）</h2>
+            <h2 class="text-2xl font-bold">マイリスト（全画面）</h2>
             <button id="closeFullscreenBtn" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
           </div>
           <div id="fullscreenPreviewArea" class="grid grid-cols-5 gap-1.5"></div>
@@ -358,7 +353,7 @@
     const availableChordsEl = document.getElementById('availableChords');
     const myListEl = document.getElementById('myList');
     const savedListEl = document.getElementById('savedList');
-    const previewArea = document.getElementById('previewArea');
+    const previewArea = myListEl;
     const capoSelectEl = document.getElementById('capoSelect');
     const suggestCapoBtn = document.getElementById('suggestCapoBtn');
 
@@ -525,55 +520,9 @@
     }
 
     function renderMyList() {
-      myListEl.innerHTML = '';
-      
-      // 編集モードのインジケーター
-      if (editingFromIdx !== null) {
-        const modeLabel = document.createElement('div');
-        modeLabel.className = 'mb-2 text-xs text-amber-700 bg-amber-50 p-2 rounded';
-        modeLabel.innerHTML = `📝 このリストは読み込み元リスト（<strong>${savedList[editingFromIdx].name}</strong>）の編集モードです。`;
-        myListEl.appendChild(modeLabel);
-        
-        // 編集モード時はボタンを表示
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'mb-2 space-x-2';
-        buttonContainer.innerHTML = `
-          <button id="saveAsNewBtn" class="bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700">新規保存</button>
-          <button id="updateBtn" class="bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-700">更新</button>
-        `;
-        myListEl.appendChild(buttonContainer);
-      }
-      
-      if (!myList.length) {
-        const emptyLi = document.createElement('li');
-        emptyLi.className = 'text-slate-500';
-        emptyLi.textContent = 'マイリストにコードがありません。';
-        myListEl.appendChild(emptyLi);
-        return;
-      }
-      
-      myList.forEach((name, idx) => {
-        const li = document.createElement('li');
-        if (name === '---') {
-          li.className = 'bg-rose-100 rounded p-1 flex justify-between items-center cursor-move';
-          li.innerHTML = `<span class="italic text-rose-600">━━━ 改行 ━━━</span><button class="text-rose-600 text-sm" data-remove="${idx}">削除</button>`;
-        } else {
-          li.className = 'bg-indigo-50 rounded p-2 flex justify-between items-center cursor-move';
-          li.innerHTML = `<span>${name}</span><button class="text-rose-600 text-sm" data-remove="${idx}">削除</button>`;
-        }
-        li.draggable = true;
-        li.dataset.index = idx;
-
-        li.addEventListener('dragstart', e => {
-          e.dataTransfer.setData('text/plain', idx);
-          e.dataTransfer.effectAllowed = 'move';
-          e.target.classList.add('opacity-50');
-        });
-        li.addEventListener('dragend', e => {
-          e.target.classList.remove('opacity-50');
-        });
-
-        myListEl.appendChild(li);
+      renderPreview(myList, myListEl, capoPosition, {
+        editable: true,
+        emptyMessage: 'マイリストにコードがありません。'
       });
     }
 
@@ -587,36 +536,60 @@
       const from = Number(e.dataTransfer.getData('text/plain'));
       if (Number.isNaN(from) || from < 0 || from >= myList.length) return;
 
-      const targetLi = e.target.closest('li');
-      let to = targetLi ? Number(targetLi.dataset.index) : myList.length - 1;
-      if (targetLi && from < to) to = to; // no adjustment needed since splice from first then insert; but we'll handle below
-      if (targetLi && from > to) to = to;
-      if (!targetLi) to = myList.length;
+      const targetItem = e.target.closest('[data-index]');
+      let to = targetItem ? Number(targetItem.dataset.index) : myList.length;
+      if (Number.isNaN(to)) to = myList.length;
 
       const moved = myList.splice(from, 1)[0];
       if (to > myList.length) to = myList.length;
       myList.splice(to, 0, moved);
 
       renderMyList();
-      renderPreview();
       saveWorkingState();
     });
 
-    function renderPreview(list = myList, target = previewArea, capo = capoPosition) {
+    function renderPreview(list = myList, target = previewArea, capo = capoPosition, options = {}) {
       target.innerHTML = '';
+      const editable = Boolean(options.editable);
+      const emptyMessage = options.emptyMessage || 'コードがありません。';
+
+      if (editable && editingFromIdx !== null) {
+        const modeLabel = document.createElement('div');
+        modeLabel.className = 'mb-2 text-xs text-amber-700 bg-amber-50 p-2 rounded';
+        modeLabel.innerHTML = `📝 このリストは読み込み元リスト（<strong>${savedList[editingFromIdx].name}</strong>）の編集モードです。`;
+        target.appendChild(modeLabel);
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'mb-2 space-x-2';
+        buttonContainer.innerHTML = `
+          <button id="saveAsNewBtn" class="bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700">新規保存</button>
+          <button id="updateBtn" class="bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-700">更新</button>
+        `;
+        target.appendChild(buttonContainer);
+      }
+
       if (!list.length) {
-        target.innerHTML = '<p class="text-slate-500">コードがありません。</p>';
+        const empty = document.createElement('p');
+        empty.className = 'text-slate-500';
+        empty.textContent = emptyMessage;
+        target.appendChild(empty);
         return;
       }
       const wrapper = document.createElement('div');
       wrapper.className = 'col-span-full';
       const cardContainer = document.createElement('div');
-      cardContainer.className = 'grid grid-cols-4 gap-2 pb-4';
+      cardContainer.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 pb-2';
       
-      list.forEach(name => {
+      list.forEach((name, idx) => {
         if (name === '---') {
           const breakDiv = document.createElement('div');
           breakDiv.className = 'col-span-full border-t-2 border-rose-300 my-2';
+          if (editable) {
+            breakDiv.dataset.index = idx;
+            breakDiv.draggable = true;
+            breakDiv.classList.add('flex', 'items-center', 'justify-between');
+            breakDiv.innerHTML = `<span class="text-xs text-rose-500 italic">━━━ 改行 ━━━</span><button class="text-rose-600 text-xs" data-remove="${idx}">削除</button>`;
+          }
           cardContainer.appendChild(breakDiv);
           return;
         }
@@ -625,7 +598,12 @@
         const shapeName = transpose(actualName, -capo);
         const chord = chordData[shapeName];
         const card = document.createElement('div');
-        card.className = 'bg-white p-1 rounded shadow-sm text-center flex-shrink-0';
+        card.className = 'bg-white p-2 rounded shadow-sm text-center flex-shrink-0 border border-slate-200';
+        if (editable) {
+          card.dataset.index = idx;
+          card.draggable = true;
+          card.classList.add('cursor-move');
+        }
         const title = document.createElement('div');
         title.className = 'font-semibold mb-1 text-sm';
         title.textContent = actualName;
@@ -646,8 +624,16 @@
         } else {
           chart.innerHTML = '<span class="text-xs text-rose-600">押さえ方データなし</span>';
         }
+
+        if (editable) {
+          const actions = document.createElement('div');
+          actions.className = 'mt-1 flex items-center justify-between';
+          actions.innerHTML = `<span class="text-[10px] text-slate-400">ドラッグで並び替え</span><button class="text-rose-600 text-xs" data-remove="${idx}">削除</button>`;
+          card.appendChild(actions);
+        }
         
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (event) => {
+          if (event.target.closest('[data-remove]')) return;
           playChord(actualName);
         });
         
@@ -656,6 +642,20 @@
       
       wrapper.appendChild(cardContainer);
       target.appendChild(wrapper);
+
+      if (editable) {
+        target.querySelectorAll('[draggable="true"]').forEach(node => {
+          node.addEventListener('dragstart', e => {
+            const index = Number(node.dataset.index);
+            e.dataTransfer.setData('text/plain', String(index));
+            e.dataTransfer.effectAllowed = 'move';
+            node.classList.add('opacity-50');
+          });
+          node.addEventListener('dragend', () => {
+            node.classList.remove('opacity-50');
+          });
+        });
+      }
     }
 
     function drawChordChart(container, chordName, chord) {
@@ -756,7 +756,6 @@
     document.getElementById('breakLineBtn').addEventListener('click', () => {
       myList.push('---');
       renderMyList();
-      renderPreview();
       saveWorkingState();
     });
 
@@ -789,7 +788,6 @@
         updateCapoUI();
         editingFromIdx = idx; // 編集モード有効化
         renderMyList();
-        renderPreview();
         saveWorkingState();
       }
       if (e.target.dataset.del !== undefined) {
@@ -812,14 +810,13 @@
         const idx = Number(e.target.dataset.remove);
         myList.splice(idx, 1);
         renderMyList();
-        renderPreview();
         saveWorkingState();
       }
     });
 
     capoSelectEl.addEventListener('change', () => {
       capoPosition = Number(capoSelectEl.value) || 0;
-      renderPreview();
+      renderMyList();
       saveWorkingState();
     });
 
@@ -852,7 +849,6 @@
       capoPosition = bestCapo;
       updateCapoUI();
       renderMyList();
-      renderPreview();
       saveWorkingState();
 
       alert(`提案カポ: ${bestCapo} (基本コード化: ${bestScore}/${chordCount})`);
@@ -923,7 +919,6 @@
               playChord(chordName);
               myList.push(chordName);
               renderMyList();
-              renderPreview();
               saveWorkingState();
               selectedBaseNote = null;
               renderAvailable();
@@ -974,10 +969,10 @@
 
     // 全画面ボタン
     document.getElementById('fullscreenBtn').addEventListener('click', () => {
-      document.querySelector('#fullscreenModal h2').textContent = 'プレビュー';
+      document.querySelector('#fullscreenModal h2').textContent = 'マイリスト';
       const modal = document.getElementById('fullscreenModal');
       const fullscreenArea = document.getElementById('fullscreenPreviewArea');
-      fullscreenArea.innerHTML = document.getElementById('previewArea').innerHTML;
+      renderPreview(myList, fullscreenArea, capoPosition, { editable: false });
       modal.classList.remove('hidden');
     });
 
@@ -999,7 +994,6 @@
       if (confirm('マイリストのすべてのコードを削除しますか？')) {
         myList = [];
         renderMyList();
-        renderPreview();
         saveWorkingState();
       }
     });
@@ -1054,7 +1048,6 @@
         updateCapoUI();
         renderAvailable();
         renderMyList();
-        renderPreview();
         saveWorkingState();
       });
     });
@@ -1094,7 +1087,6 @@
       updateCapoUI();
       renderAvailable();
       renderMyList();
-      renderPreview();
       updateSavedUI();
 
       if (typeof window.VConsole !== 'undefined') {
