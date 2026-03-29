@@ -609,11 +609,6 @@
         title.textContent = capo > 0 ? shapeName : actualName;
         card.appendChild(title);
 
-        const shapeLabel = document.createElement('div');
-        shapeLabel.className = 'text-[10px] text-slate-500 mb-1';
-        shapeLabel.textContent = capo > 0 ? `実音: ${actualName} / カポ: ${capo}` : '押さえ: そのまま';
-        card.appendChild(shapeLabel);
-
         const chart = document.createElement('div');
         chart.className = 'flex justify-center';
         chart.style.minHeight = '75px';
