@@ -24,6 +24,8 @@
         <div class="space-x-2">
           <button id="breakLineBtn" class="bg-sky-600 text-white px-3 py-1.5 rounded text-sm hover:bg-sky-700">改行</button>
           <button id="saveListBtn" class="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700">保存</button>
+          <button id="saveAsNewBtn" class="bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 hidden">新規保存</button>
+          <button id="updateBtn" class="bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-700 hidden">更新</button>
         </div>
       </div>
       <ul id="myList" class="space-y-2 min-h-[160px] border border-dashed border-slate-300 rounded p-3"></ul>
@@ -219,7 +221,7 @@
         }
         
         li.innerHTML = `
-          <span>${displayName}${chordText} (${chordCount}コード)</span>
+          <span><strong>${entry.name || '名前なし'}</strong> (${chordCount}コード)</span>
           <div class="space-x-2">
             <button class="text-indigo-600 hover:underline" data-load="${idx}">読み込み</button>
             <button class="text-rose-600 hover:underline" data-del="${idx}">削除</button>
@@ -242,6 +244,15 @@
         modeLabel.className = 'mb-2 text-xs text-amber-700 bg-amber-50 p-2 rounded';
         modeLabel.innerHTML = `📝 このリストは読み込み元リスト（<strong>${savedList[editingFromIdx].name}</strong>）の編集モードです。`;
         myListEl.appendChild(modeLabel);
+        
+        // 編集モード時はボタンを表示
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'mb-2 space-x-2';
+        buttonContainer.innerHTML = `
+          <button id="saveAsNewBtn" class="bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700">新規保存</button>
+          <button id="updateBtn" class="bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-700">更新</button>
+        `;
+        myListEl.appendChild(buttonContainer);
       }
       
       if (!myList.length) {
@@ -449,41 +460,19 @@
     document.getElementById('saveListBtn').addEventListener('click', () => {
       if (!myList.length) return alert('マイリストが空です。');
       
-      // 編集モードの場合は新規・更新を選択
-      if (editingFromIdx !== null) {
-        const choice = confirm('新規保存しますか？\n「OK」で新規保存、「キャンセル」で読み込み元を更新します');
-        if (choice) {
-          // 新規保存
-          const name = prompt('新しいリストに名前をつけてください:');
-          if (name === null) return;
-          savedList.push({
-            name: name || '名前なし',
-            chords: [...myList]
-          });
-        } else {
-          // 読み込み元を更新
-          const originalName = savedList[editingFromIdx].name;
-          const newName = prompt('このリストの名前を入力してください:', originalName);
-          if (newName === null) return;
-          savedList[editingFromIdx] = {
-            name: newName || originalName,
-            chords: [...myList]
-          };
-        }
-      } else {
-        // 新規作成の場合
-        const name = prompt('このリストに名前をつけてください:');
-        if (name === null) return;
-        savedList.push({
-          name: name || '名前なし',
-          chords: [...myList]
-        });
-      }
+      // 編集モード時はボタン分離なので何もしない
+      if (editingFromIdx !== null) return;
+      
+      // 新規作成の場合
+      const name = prompt('このリストに名前をつけてください:');
+      if (name === null) return;
+      savedList.push({
+        name: name || '名前なし',
+        chords: [...myList]
+      });
       
       setLocalStorage();
       updateSavedUI();
-      editingFromIdx = null; // 編集モード解除
-      renderMyList();
       alert('保存されました');
     });
 
@@ -625,6 +614,43 @@
         }
       });
     }
+
+    // 新規保存ボタン（編集モード時）
+    document.addEventListener('click', e => {
+      if (e.target.id === 'saveAsNewBtn') {
+        if (!myList.length) return alert('マイリストが空です。');
+        const name = prompt('新しいリストに名前をつけてください:');
+        if (name === null) return;
+        savedList.push({
+          name: name || '名前なし',
+          chords: [...myList]
+        });
+        setLocalStorage();
+        updateSavedUI();
+        editingFromIdx = null;
+        renderMyList();
+        alert('新規保存されました');
+      }
+    });
+
+    // 更新ボタン（編集モード時）
+    document.addEventListener('click', e => {
+      if (e.target.id === 'updateBtn') {
+        if (!myList.length) return alert('マイリストが空です。');
+        const originalName = savedList[editingFromIdx].name;
+        const newName = prompt('このリストの名前を入力してください:', originalName);
+        if (newName === null) return;
+        savedList[editingFromIdx] = {
+          name: newName || originalName,
+          chords: [...myList]
+        };
+        setLocalStorage();
+        updateSavedUI();
+        editingFromIdx = null;
+        renderMyList();
+        alert('更新されました');
+      }
+    });
 
     function init() {
       renderAvailable();
