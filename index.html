@@ -64,6 +64,14 @@
 
     let myList = [];
     let savedList = JSON.parse(localStorage.getItem('ukuleleSaved') || '[]');
+    
+    // データマイグレーション：古い配列形式を新しいオブジェクト形式に変換
+    savedList = savedList.map(entry => {
+      if (Array.isArray(entry)) {
+        return { name: '名前なし', chords: entry };
+      }
+      return entry;
+    });
 
     const chordNames = Object.keys(chordData);
 
@@ -76,10 +84,22 @@
       savedList.forEach((entry, idx) => {
         const li = document.createElement('li');
         li.className = 'flex justify-between items-center bg-slate-50 p-2 rounded';
-        const displayName = entry.name ? `<strong>${entry.name}</strong>: ` : '';
-        const chordCount = entry.chords.filter(c => c !== '---').length;
+        
+        let displayName = '';
+        let chordCount = 0;
+        let chordText = '';
+        
+        if (Array.isArray(entry)) {
+          chordCount = entry.filter(c => c !== '---').length;
+          chordText = entry.join(' ');
+        } else if (entry && entry.chords) {
+          displayName = entry.name ? `<strong>${entry.name}</strong>: ` : '';
+          chordCount = entry.chords.filter(c => c !== '---').length;
+          chordText = entry.chords.join(' ');
+        }
+        
         li.innerHTML = `
-          <span>${displayName}${entry.chords.join(' ')} (${chordCount}コード)</span>
+          <span>${displayName}${chordText} (${chordCount}コード)</span>
           <div class="space-x-2">
             <button class="text-indigo-600 hover:underline" data-load="${idx}">読み込み</button>
             <button class="text-rose-600 hover:underline" data-del="${idx}">削除</button>
@@ -302,7 +322,8 @@
     savedListEl.addEventListener('click', e => {
       if (e.target.dataset.load !== undefined) {
         const idx = Number(e.target.dataset.load);
-        myList = [...savedList[idx].chords];
+        const entry = savedList[idx];
+        myList = Array.isArray(entry) ? [...entry] : [...entry.chords];
         renderMyList();
         renderPreview();
       }
@@ -337,7 +358,6 @@
         btn.className = 'bg-indigo-600 text-white rounded px-2 py-1 text-sm hover:bg-indigo-700';
         btn.textContent = 'マイリストに追加';
         btn.addEventListener('click', () => {
-          if (myList.length >= 16) return alert('マイリストは最大16コードです');
           myList.push(name);
           renderMyList();
           renderPreview();
