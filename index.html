@@ -658,7 +658,8 @@
       const inst = instruments[currentInstrument];
       const width = inst.numStrings === 4 ? 60 : 80;
       const height = 75;
-      const rotatedWidth = height;
+      const markerPadding = 12;
+      const rotatedWidth = height + markerPadding;
       const rotatedHeight = width;
       const svgNS = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(svgNS, 'svg');
@@ -669,7 +670,7 @@
 
       // もとの座標系で描画してから、反時計回りに90度回転する
       const drawingLayer = document.createElementNS(svgNS, 'g');
-      drawingLayer.setAttribute('transform', `translate(0 ${width}) rotate(-90)`);
+      drawingLayer.setAttribute('transform', `translate(${markerPadding} ${width}) rotate(-90)`);
 
       const marginX = 6;
       const marginY = 6;
