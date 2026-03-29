@@ -363,6 +363,7 @@
     const suggestCapoBtn = document.getElementById('suggestCapoBtn');
 
     const NOTE_SCALE = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+    const INDEX_TO_BASE_NOTE = baseNotes;
     const ROOT_TO_INDEX = {
       'C': 0,
       'C#': 1,
@@ -427,13 +428,30 @@
       const baseIndex = ROOT_TO_INDEX[parsed.root];
       if (baseIndex === undefined) return chord;
       const moved = (baseIndex + semi + 120) % 12;
-      return `${NOTE_SCALE[moved]}${parsed.suffix}`;
+      return `${INDEX_TO_BASE_NOTE[moved]}${parsed.suffix}`;
+    }
+
+    function toChordDataName(chord) {
+      const parsed = parseChordSymbol(chord);
+      if (!parsed) return chord;
+      const rootIndex = ROOT_TO_INDEX[parsed.root];
+      if (rootIndex === undefined) return chord;
+      return `${INDEX_TO_BASE_NOTE[rootIndex]}${parsed.suffix}`;
+    }
+
+    function normalizeChordList(list) {
+      return list.map(ch => (ch === '---' ? ch : toChordDataName(ch)));
+    }
+
+    function toActualPitchChords(list, capo) {
+      return normalizeChordList(list).map(ch => (ch === '---' ? ch : transpose(ch, capo)));
     }
 
     function getWorkingState() {
       return {
         list: [...myList],
-        capo: capoPosition
+        capo: capoPosition,
+        storageVersion: 2
       };
     }
 
@@ -447,7 +465,13 @@
       try {
         const state = JSON.parse(raw);
         if (state && Array.isArray(state.list)) {
-          myList = [...state.list];
+          const restoredCapo = state && Number.isInteger(state.capo) ? ((state.capo % 12) + 12) % 12 : 0;
+          if (state.storageVersion === 2) {
+            myList = normalizeChordList(state.list);
+          } else {
+            // 旧形式: listは押さえ方ベースだったため、実音ベースへ変換
+            myList = toActualPitchChords(state.list, restoredCapo);
+          }
         }
         if (state && Number.isInteger(state.capo)) {
           capoPosition = ((state.capo % 12) + 12) % 12;
@@ -596,24 +620,35 @@
           cardContainer.appendChild(breakDiv);
           return;
         }
-        
-        const chord = chordData[name];
+
+        const actualName = toChordDataName(name);
+        const shapeName = transpose(actualName, -capo);
+        const chord = chordData[shapeName];
         const card = document.createElement('div');
         card.className = 'bg-white p-1 rounded shadow-sm text-center flex-shrink-0';
         const title = document.createElement('div');
         title.className = 'font-semibold mb-1 text-sm';
-        title.textContent = transpose(name, capo);
+        title.textContent = actualName;
         card.appendChild(title);
+
+        const shapeLabel = document.createElement('div');
+        shapeLabel.className = 'text-[10px] text-slate-500 mb-1';
+        shapeLabel.textContent = capo > 0 ? `押さえ: ${shapeName}` : '押さえ: そのまま';
+        card.appendChild(shapeLabel);
 
         const chart = document.createElement('div');
         chart.className = 'flex justify-center';
         chart.style.minHeight = '75px';
         card.appendChild(chart);
 
-        drawChordChart(chart, name, chord);
+        if (chord) {
+          drawChordChart(chart, shapeName, chord);
+        } else {
+          chart.innerHTML = '<span class="text-xs text-rose-600">押さえ方データなし</span>';
+        }
         
         card.addEventListener('click', () => {
-          playChord(name);
+          playChord(actualName);
         });
         
         cardContainer.appendChild(card);
@@ -789,7 +824,7 @@
     });
 
     suggestCapoBtn.addEventListener('click', () => {
-      const actualChords = myList.map(ch => (ch === '---' ? ch : transpose(ch, capoPosition)));
+      const actualChords = normalizeChordList(myList);
       const chordCount = actualChords.filter(ch => ch !== '---').length;
       if (!chordCount) {
         alert('提案対象のコードがありません。');
@@ -814,7 +849,6 @@
         }
       }
 
-      myList = actualChords.map(ch => (ch === '---' ? ch : transpose(ch, -bestCapo)));
       capoPosition = bestCapo;
       updateCapoUI();
       renderMyList();
@@ -910,7 +944,8 @@
 
     // コードの音を再生
     function playChord(chordName) {
-      const chord = chordData[chordName];
+      const dataName = toChordDataName(chordName);
+      const chord = chordData[dataName];
       if (!chord || !chord.frets) return;
 
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1025,6 +1060,36 @@
     });
 
     function init() {
+      savedList = savedList.map(entry => {
+        if (!entry || Array.isArray(entry)) {
+          return {
+            name: '名前なし',
+            chords: toActualPitchChords(Array.isArray(entry) ? entry : [], 0),
+            capo: 0,
+            storageVersion: 2
+          };
+        }
+
+        const capo = Number.isInteger(entry.capo) ? ((entry.capo % 12) + 12) % 12 : 0;
+        const chords = Array.isArray(entry.chords) ? entry.chords : [];
+        if (entry.storageVersion === 2) {
+          return {
+            ...entry,
+            chords: normalizeChordList(chords),
+            capo,
+            storageVersion: 2
+          };
+        }
+
+        return {
+          ...entry,
+          chords: toActualPitchChords(chords, capo),
+          capo,
+          storageVersion: 2
+        };
+      });
+      setLocalStorage();
+
       restoreWorkingState();
       updateCapoUI();
       renderAvailable();
