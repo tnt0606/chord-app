@@ -218,7 +218,7 @@
       }
       savedList.forEach((entry, idx) => {
         const li = document.createElement('li');
-        li.className = 'flex justify-between items-center bg-slate-50 p-2 rounded';
+        li.className = 'bg-slate-50 p-2 rounded flex flex-col gap-2';
         
         let displayName = '';
         let chordCount = 0;
@@ -234,7 +234,7 @@
         }
         
         li.innerHTML = `
-          <span><strong>${entry.name || '名前なし'}</strong> (${chordCount}コード)</span>
+          <div><strong>${entry.name || '名前なし'}</strong> (${chordCount}コード)</div>
           <div class="flex flex-wrap gap-1">
             <button class="text-indigo-600 hover:underline text-sm px-2 py-1" data-load="${idx}">読み込み</button>
             <button class="text-purple-600 hover:underline text-sm px-2 py-1" data-fullscreen="${idx}">全画面</button>
@@ -508,7 +508,7 @@
       if (e.target.dataset.fullscreen !== undefined) {
         const idx = Number(e.target.dataset.fullscreen);
         const entry = savedList[idx];
-        document.querySelector('#fullscreenModal h2').textContent = `${entry.name}（全画面）`;
+        document.querySelector('#fullscreenModal h2').textContent = `${entry.name}`;
         renderPreview(entry.chords, document.getElementById('fullscreenPreviewArea'));
         document.getElementById('fullscreenModal').classList.remove('hidden');
       }
@@ -638,7 +638,7 @@
 
     // 全画面ボタン
     document.getElementById('fullscreenBtn').addEventListener('click', () => {
-      document.querySelector('#fullscreenModal h2').textContent = 'プレビュー（全画面）';
+      document.querySelector('#fullscreenModal h2').textContent = 'プレビュー';
       const modal = document.getElementById('fullscreenModal');
       const fullscreenArea = document.getElementById('fullscreenPreviewArea');
       fullscreenArea.innerHTML = document.getElementById('previewArea').innerHTML;
