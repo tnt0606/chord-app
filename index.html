@@ -37,7 +37,23 @@
     <section id="myListSection" class="bg-white rounded-xl shadow p-5">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
         <h2 class="text-xl font-semibold text-slate-700">作成中のマイリスト</h2>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <label for="capoSelect" class="text-sm text-slate-700">カポ:</label>
+          <select id="capoSelect" class="border border-slate-300 rounded px-2 py-1.5 text-sm bg-white">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+          </select>
+          <button id="suggestCapoBtn" class="bg-emerald-600 text-white px-3 py-1.5 rounded text-sm hover:bg-emerald-700">一番楽なカポを提案</button>
           <button id="breakLineBtn" class="bg-sky-600 text-white px-3 py-1.5 rounded text-sm hover:bg-sky-700">改行</button>
           <button id="clearAllBtn" class="bg-red-600 text-white px-3 py-1.5 rounded text-sm hover:bg-red-700">すべて削除</button>
           <button id="saveListBtn" class="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700">保存</button>
@@ -343,18 +359,107 @@
     const myListEl = document.getElementById('myList');
     const savedListEl = document.getElementById('savedList');
     const previewArea = document.getElementById('previewArea');
+    const capoSelectEl = document.getElementById('capoSelect');
+    const suggestCapoBtn = document.getElementById('suggestCapoBtn');
+
+    const NOTE_SCALE = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+    const ROOT_TO_INDEX = {
+      'C': 0,
+      'C#': 1,
+      'Db': 1,
+      'C#/Db': 1,
+      'D': 2,
+      'D#': 3,
+      'Eb': 3,
+      'D#/Eb': 3,
+      'E': 4,
+      'F': 5,
+      'F#': 6,
+      'Gb': 6,
+      'F#/Gb': 6,
+      'G': 7,
+      'G#': 8,
+      'Ab': 8,
+      'G#/Ab': 8,
+      'A': 9,
+      'A#': 10,
+      'Bb': 10,
+      'A#/Bb': 10,
+      'B': 11
+    };
+    const ROOT_CANDIDATES = Object.keys(ROOT_TO_INDEX).sort((a, b) => b.length - a.length);
+    const OPEN_CHORD_SHAPES = new Set(['C', 'G', 'Am', 'F', 'D', 'E', 'Em', 'A', 'D7', 'G7']);
 
     let myList = [];
     let editingFromIdx = null; // 読み込み元のリストインデックス（編集モード追跡用）
+    let capoPosition = 0;
     let savedList = JSON.parse(localStorage.getItem('ukuleleSaved') || '[]');
     
     // データマイグレーション：古い配列形式を新しいオブジェクト形式に変換
     savedList = savedList.map(entry => {
       if (Array.isArray(entry)) {
-        return { name: '名前なし', chords: entry };
+        return { name: '名前なし', chords: entry, capo: 0 };
+      }
+      if (entry && entry.chords) {
+        return {
+          ...entry,
+          capo: Number.isInteger(entry.capo) ? entry.capo : 0
+        };
       }
       return entry;
     });
+
+    function parseChordSymbol(chord) {
+      for (const root of ROOT_CANDIDATES) {
+        if (chord.startsWith(root)) {
+          return {
+            root,
+            suffix: chord.slice(root.length)
+          };
+        }
+      }
+      return null;
+    }
+
+    function transpose(chord, semi) {
+      const parsed = parseChordSymbol(chord);
+      if (!parsed) return chord;
+      const baseIndex = ROOT_TO_INDEX[parsed.root];
+      if (baseIndex === undefined) return chord;
+      const moved = (baseIndex + semi + 120) % 12;
+      return `${NOTE_SCALE[moved]}${parsed.suffix}`;
+    }
+
+    function getWorkingState() {
+      return {
+        list: [...myList],
+        capo: capoPosition
+      };
+    }
+
+    function saveWorkingState() {
+      localStorage.setItem('ukuleleWorkingState', JSON.stringify(getWorkingState()));
+    }
+
+    function restoreWorkingState() {
+      const raw = localStorage.getItem('ukuleleWorkingState');
+      if (!raw) return;
+      try {
+        const state = JSON.parse(raw);
+        if (state && Array.isArray(state.list)) {
+          myList = [...state.list];
+        }
+        if (state && Number.isInteger(state.capo)) {
+          capoPosition = ((state.capo % 12) + 12) % 12;
+        }
+      } catch (err) {
+        console.warn('working state restore failed', err);
+      }
+    }
+
+    function updateCapoUI() {
+      capoSelectEl.value = String(capoPosition);
+    }
 
     function updateSavedUI() {
       savedListEl.innerHTML = '';
@@ -470,9 +575,10 @@
 
       renderMyList();
       renderPreview();
+      saveWorkingState();
     });
 
-    function renderPreview(list = myList, target = previewArea) {
+    function renderPreview(list = myList, target = previewArea, capo = capoPosition) {
       target.innerHTML = '';
       if (!list.length) {
         target.innerHTML = '<p class="text-slate-500">コードがありません。</p>';
@@ -496,7 +602,7 @@
         card.className = 'bg-white p-1 rounded shadow-sm text-center flex-shrink-0';
         const title = document.createElement('div');
         title.className = 'font-semibold mb-1 text-sm';
-        title.textContent = name;
+        title.textContent = transpose(name, capo);
         card.appendChild(title);
 
         const chart = document.createElement('div');
@@ -616,6 +722,7 @@
       myList.push('---');
       renderMyList();
       renderPreview();
+      saveWorkingState();
     });
 
     document.getElementById('saveListBtn').addEventListener('click', () => {
@@ -629,7 +736,8 @@
       if (name === null) return;
       savedList.push({
         name: name || '名前なし',
-        chords: [...myList]
+        chords: [...myList],
+        capo: capoPosition
       });
       
       setLocalStorage();
@@ -642,9 +750,12 @@
         const idx = Number(e.target.dataset.load);
         const entry = savedList[idx];
         myList = Array.isArray(entry) ? [...entry] : [...entry.chords];
+        capoPosition = entry && Number.isInteger(entry.capo) ? entry.capo : 0;
+        updateCapoUI();
         editingFromIdx = idx; // 編集モード有効化
         renderMyList();
         renderPreview();
+        saveWorkingState();
       }
       if (e.target.dataset.del !== undefined) {
         const idx = Number(e.target.dataset.del);
@@ -656,7 +767,7 @@
         const idx = Number(e.target.dataset.fullscreen);
         const entry = savedList[idx];
         document.querySelector('#fullscreenModal h2').textContent = `${entry.name}`;
-        renderPreview(entry.chords, document.getElementById('fullscreenPreviewArea'));
+        renderPreview(entry.chords, document.getElementById('fullscreenPreviewArea'), entry.capo || 0);
         document.getElementById('fullscreenModal').classList.remove('hidden');
       }
     });
@@ -667,7 +778,50 @@
         myList.splice(idx, 1);
         renderMyList();
         renderPreview();
+        saveWorkingState();
       }
+    });
+
+    capoSelectEl.addEventListener('change', () => {
+      capoPosition = Number(capoSelectEl.value) || 0;
+      renderPreview();
+      saveWorkingState();
+    });
+
+    suggestCapoBtn.addEventListener('click', () => {
+      const actualChords = myList.map(ch => (ch === '---' ? ch : transpose(ch, capoPosition)));
+      const chordCount = actualChords.filter(ch => ch !== '---').length;
+      if (!chordCount) {
+        alert('提案対象のコードがありません。');
+        return;
+      }
+
+      let bestCapo = 0;
+      let bestScore = -1;
+
+      for (let capo = 0; capo < 12; capo++) {
+        let score = 0;
+        actualChords.forEach(ch => {
+          if (ch === '---') return;
+          const shape = transpose(ch, -capo);
+          if (OPEN_CHORD_SHAPES.has(shape)) {
+            score += 1;
+          }
+        });
+        if (score > bestScore) {
+          bestScore = score;
+          bestCapo = capo;
+        }
+      }
+
+      myList = actualChords.map(ch => (ch === '---' ? ch : transpose(ch, -bestCapo)));
+      capoPosition = bestCapo;
+      updateCapoUI();
+      renderMyList();
+      renderPreview();
+      saveWorkingState();
+
+      alert(`提案カポ: ${bestCapo} (基本コード化: ${bestScore}/${chordCount})`);
     });
 
     let selectedBaseNote = null; // 選択中のベースノート
@@ -736,6 +890,7 @@
               myList.push(chordName);
               renderMyList();
               renderPreview();
+              saveWorkingState();
               selectedBaseNote = null;
               renderAvailable();
             });
@@ -810,6 +965,7 @@
         myList = [];
         renderMyList();
         renderPreview();
+        saveWorkingState();
       }
     });
 
@@ -821,7 +977,8 @@
         if (name === null) return;
         savedList.push({
           name: name || '名前なし',
-          chords: [...myList]
+          chords: [...myList],
+          capo: capoPosition
         });
         setLocalStorage();
         updateSavedUI();
@@ -840,7 +997,8 @@
         if (newName === null) return;
         savedList[editingFromIdx] = {
           name: newName || originalName,
-          chords: [...myList]
+          chords: [...myList],
+          capo: capoPosition
         };
         setLocalStorage();
         updateSavedUI();
@@ -857,13 +1015,18 @@
         updateChordData();
         selectedBaseNote = null;
         myList = []; // 楽器変更時はリストをクリア
+        capoPosition = 0;
+        updateCapoUI();
         renderAvailable();
         renderMyList();
         renderPreview();
+        saveWorkingState();
       });
     });
 
     function init() {
+      restoreWorkingState();
+      updateCapoUI();
       renderAvailable();
       renderMyList();
       renderPreview();
