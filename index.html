@@ -111,6 +111,9 @@
       }
     };
     
+    // コード種の表示順（一般的な順番）
+    const chordTypeOrder = ['', 'm', '7', 'maj7', 'm7', 'sus2', 'sus4'];
+    
     const chordTypes = {
       '': 'Major',
       'm': 'Minor',
@@ -501,33 +504,36 @@
         availableChordsEl.appendChild(header);
         
         // コード種を表示
-        Object.entries(chordByNote[selectedBaseNote]).forEach(([type, frets]) => {
-          const chordName = type ? selectedBaseNote + type : selectedBaseNote;
-          const card = document.createElement('article');
-          card.className = 'bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex flex-col gap-2 cursor-pointer hover:shadow-md hover:border-indigo-400 transition';
+        chordTypeOrder.forEach(type => {
+          if (chordByNote[selectedBaseNote][type]) {
+            const frets = chordByNote[selectedBaseNote][type];
+            const chordName = type ? selectedBaseNote + type : selectedBaseNote;
+            const card = document.createElement('article');
+            card.className = 'bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex flex-col gap-2 cursor-pointer hover:shadow-md hover:border-indigo-400 transition';
 
-          const title = document.createElement('h3');
-          title.className = 'font-medium text-slate-700 text-center';
-          title.textContent = chordName;
-          
-          const typeLabel = document.createElement('p');
-          typeLabel.className = 'text-xs text-slate-500 text-center';
-          typeLabel.textContent = `${chordTypes[type] || 'Major'}`;
+            const title = document.createElement('h3');
+            title.className = 'font-medium text-slate-700 text-center';
+            title.textContent = chordName;
+            
+            const typeLabel = document.createElement('p');
+            typeLabel.className = 'text-xs text-slate-500 text-center';
+            typeLabel.textContent = `${chordTypes[type] || 'Major'}`;
 
-          const preview = document.createElement('div');
-          preview.className = 'h-24 flex items-center justify-center hover:bg-indigo-50 rounded transition';
-          drawChordChart(preview, chordName, frets);
+            const preview = document.createElement('div');
+            preview.className = 'h-24 flex items-center justify-center hover:bg-indigo-50 rounded transition';
+            drawChordChart(preview, chordName, frets);
 
-          card.addEventListener('click', () => {
-            myList.push(chordName);
-            renderMyList();
-            renderPreview();
-            selectedBaseNote = null;
-            renderAvailable();
-          });
+            card.addEventListener('click', () => {
+              myList.push(chordName);
+              renderMyList();
+              renderPreview();
+              selectedBaseNote = null;
+              renderAvailable();
+            });
 
-          card.append(title, typeLabel, preview);
-          availableChordsEl.appendChild(card);
+            card.append(title, typeLabel, preview);
+            availableChordsEl.appendChild(card);
+          }
         });
       }
     }
