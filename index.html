@@ -348,7 +348,8 @@
       }
 
       // フレットマークとフィンガー
-      chord.forEach((fret, s) => {
+      const frets = chord.frets || chord; // chordが{frets:[]}形式か[]形式かを判定
+      frets.forEach((fret, s) => {
         const x = marginX + (woodWidth / (stringCount - 1)) * s;
         if (fret === 'x' || fret === 'X') {
           const text = document.createElementNS(svgNS, 'text');
