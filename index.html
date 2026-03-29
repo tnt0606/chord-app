@@ -63,6 +63,7 @@
     const previewArea = document.getElementById('previewArea');
 
     let myList = [];
+    let editingFromIdx = null; // 読み込み元のリストインデックス（編集モード追跡用）
     let savedList = JSON.parse(localStorage.getItem('ukuleleSaved') || '[]');
     
     // データマイグレーション：古い配列形式を新しいオブジェクト形式に変換
@@ -115,9 +116,23 @@
 
     function renderMyList() {
       myListEl.innerHTML = '';
-      if (!myList.length) {
-        myListEl.innerHTML = '<li class="text-slate-500">マイリストにコードがありません。</li>';
+      
+      // 編集モードのインジケーター
+      if (editingFromIdx !== null) {
+        const modeLabel = document.createElement('div');
+        modeLabel.className = 'mb-2 text-xs text-amber-700 bg-amber-50 p-2 rounded';
+        modeLabel.innerHTML = `📝 このリストは読み込み元リスト（<strong>${savedList[editingFromIdx].name}</strong>）の編集モードです。`;
+        myListEl.appendChild(modeLabel);
       }
+      
+      if (!myList.length) {
+        const emptyLi = document.createElement('li');
+        emptyLi.className = 'text-slate-500';
+        emptyLi.textContent = 'マイリストにコードがありません。';
+        myListEl.appendChild(emptyLi);
+        return;
+      }
+      
       myList.forEach((name, idx) => {
         const li = document.createElement('li');
         if (name === '---') {
@@ -308,14 +323,42 @@
 
     document.getElementById('saveListBtn').addEventListener('click', () => {
       if (!myList.length) return alert('マイリストが空です。');
-      const name = prompt('このリストに名前をつけてください:');
-      if (name === null) return;
-      savedList.push({
-        name: name || '名前なし',
-        chords: [...myList]
-      });
+      
+      // 編集モードの場合は新規・更新を選択
+      if (editingFromIdx !== null) {
+        const choice = confirm('新規保存しますか？\n「OK」で新規保存、「キャンセル」で読み込み元を更新します');
+        if (choice) {
+          // 新規保存
+          const name = prompt('新しいリストに名前をつけてください:');
+          if (name === null) return;
+          savedList.push({
+            name: name || '名前なし',
+            chords: [...myList]
+          });
+        } else {
+          // 読み込み元を更新
+          const originalName = savedList[editingFromIdx].name;
+          const newName = prompt('このリストの名前を入力してください:', originalName);
+          if (newName === null) return;
+          savedList[editingFromIdx] = {
+            name: newName || originalName,
+            chords: [...myList]
+          };
+        }
+      } else {
+        // 新規作成の場合
+        const name = prompt('このリストに名前をつけてください:');
+        if (name === null) return;
+        savedList.push({
+          name: name || '名前なし',
+          chords: [...myList]
+        });
+      }
+      
       setLocalStorage();
       updateSavedUI();
+      editingFromIdx = null; // 編集モード解除
+      renderMyList();
       alert('保存されました');
     });
 
@@ -324,6 +367,7 @@
         const idx = Number(e.target.dataset.load);
         const entry = savedList[idx];
         myList = Array.isArray(entry) ? [...entry] : [...entry.chords];
+        editingFromIdx = idx; // 編集モード有効化
         renderMyList();
         renderPreview();
       }
