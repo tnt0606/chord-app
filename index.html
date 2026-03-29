@@ -4,37 +4,258 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ウクレレコード譜ジェネレーター</title>
-  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vexchords@1.1.1/dist/vexchords.min.js"></script>
 </head>
-<body>
-  <div class="app-shell">
-    <header>
-      <h1>ウクレレコード譜ジェネレーター</h1>
-      <p>コード名を入力すると簡単にコード譜を表示します。</p>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+  <div class="max-w-6xl mx-auto p-4 space-y-6">
+    <header class="bg-white rounded-xl shadow p-5">
+      <h1 class="text-2xl font-bold text-indigo-700">ウクレレコード譜ジェネレーター</h1>
+      <p class="text-slate-600 mt-1">利用可能なコードを選択して、作成中リスト・保存リストを操作できます。</p>
     </header>
 
-    <section class="controls">
-      <label for="chordInput">コード進行 (スペース区切り)</label>
-      <input id="chordInput" type="text" placeholder="例: C G Am F" value="C G Am F" />
-      <button id="renderBtn">表示</button>
-      <button id="clearBtn" class="secondary">クリア</button>
+    <section id="availableSection" class="bg-white rounded-xl shadow p-5">
+      <h2 class="text-xl font-semibold text-slate-700 mb-3">利用可能なコード一覧</h2>
+      <div id="availableChords" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
     </section>
 
-    <section class="chord-area" aria-live="polite" id="chordArea">
-      <!-- チャートが追加される -->
+    <section id="myListSection" class="bg-white rounded-xl shadow p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xl font-semibold text-slate-700">作成中のマイリスト（並び替え可能）</h2>
+        <button id="saveListBtn" class="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700">保存</button>
+      </div>
+      <ul id="myList" class="space-y-2 min-h-[160px] border border-dashed border-slate-300 rounded p-3"></ul>
+      <p class="text-xs text-slate-500 mt-2">ドラッグ&ドロップで順序変更できます。個別の「削除」も可能です。</p>
     </section>
 
-    <section class="notes">
-      <h2>使い方</h2>
-      <ul>
-        <li>コード名を入力 (例: C, G, Am, F, D7, Em)</li>
-        <li>「表示」ボタンでコード図を生成</li>
-        <li>追加コードは <code>chords</code> オブジェクトに追加できます</li>
-      </ul>
+    <section id="savedSection" class="bg-white rounded-xl shadow p-5">
+      <h2 class="text-xl font-semibold text-slate-700 mb-3">保存済みリスト</h2>
+      <ul id="savedList" class="space-y-2 min-h-[100px] border border-slate-200 rounded p-3"></ul>
+    </section>
+
+    <section id="previewSection" class="bg-white rounded-xl shadow p-5">
+      <h2 class="text-xl font-semibold text-slate-700 mb-3">プレビュー</h2>
+      <div id="previewArea" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
     </section>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chordjs@latest/dist/chord.min.js"></script>
-  <script src="app.js"></script>
+  <script>
+    const chordData = {
+      C: { frets:[0,0,0,3], text:'C' },
+      G: { frets:[0,2,3,2], text:'G' },
+      Am: { frets:[2,0,0,0], text:'Am' },
+      F: { frets:[2,0,1,0], text:'F' },
+      Dm: { frets:[2,2,1,0], text:'Dm' },
+      Em: { frets:[0,4,3,2], text:'Em' },
+      D7: { frets:[2,2,0,2], text:'D7' },
+      D: { frets:[2,2,2,0], text:'D' },
+      A: { frets:[2,1,0,0], text:'A' },
+      E: { frets:[4,4,0,2], text:'E' },
+      B: { frets:[4,4,4,2], text:'B' },
+      Bm: { frets:[4,2,4,2], text:'Bm' }
+    };
+
+    const availableChordsEl = document.getElementById('availableChords');
+    const myListEl = document.getElementById('myList');
+    const savedListEl = document.getElementById('savedList');
+    const previewArea = document.getElementById('previewArea');
+
+    let myList = [];
+    let savedList = JSON.parse(localStorage.getItem('ukuleleSaved') || '[]');
+
+    const chordNames = Object.keys(chordData);
+
+    function updateSavedUI() {
+      savedListEl.innerHTML = '';
+      if (!savedList.length) {
+        savedListEl.innerHTML = '<li class="text-slate-500">保存済みのコードがありません。</li>';
+        return;
+      }
+      savedList.forEach((entry, idx) => {
+        const li = document.createElement('li');
+        li.className = 'flex justify-between items-center bg-slate-50 p-2 rounded';
+        li.innerHTML = `
+          <span>${entry.join(' ')} (${entry.length}コード)</span>
+          <div class="space-x-2">
+            <button class="text-indigo-600 hover:underline" data-load="${idx}">読み込み</button>
+            <button class="text-rose-600 hover:underline" data-del="${idx}">削除</button>
+          </div>
+        `;
+        savedListEl.appendChild(li);
+      });
+    }
+
+    function setLocalStorage() {
+      localStorage.setItem('ukuleleSaved', JSON.stringify(savedList));
+    }
+
+    function renderMyList() {
+      myListEl.innerHTML = '';
+      if (!myList.length) {
+        myListEl.innerHTML = '<li class="text-slate-500">マイリストにコードがありません。</li>';
+      }
+      myList.forEach((name, idx) => {
+        const li = document.createElement('li');
+        li.className = 'bg-indigo-50 rounded p-2 flex justify-between items-center cursor-move';
+        li.draggable = true;
+        li.dataset.index = idx;
+        li.innerHTML = `<span>${name}</span><button class="text-rose-600 text-sm" data-remove="${idx}">削除</button>`;
+
+        li.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', idx);
+          e.target.classList.add('opacity-50');
+        });
+        li.addEventListener('dragend', e => {
+          e.target.classList.remove('opacity-50');
+        });
+
+        li.addEventListener('dragover', e => {
+          e.preventDefault();
+          li.classList.add('ring-2 ring-indigo-400');
+        });
+        li.addEventListener('dragleave', () => {
+          li.classList.remove('ring-2 ring-indigo-400');
+        });
+        li.addEventListener('drop', e => {
+          e.preventDefault();
+          li.classList.remove('ring-2 ring-indigo-400');
+          const from = Number(e.dataTransfer.getData('text/plain'));
+          const to = Number(li.dataset.index);
+          if (from === to) return;
+          const moved = myList.splice(from,1)[0];
+          myList.splice(to,0,moved);
+          renderMyList();
+          renderPreview();
+        });
+
+        myListEl.appendChild(li);
+      });
+    }
+
+    function renderPreview() {
+      previewArea.innerHTML = '';
+      if (!myList.length) {
+        previewArea.innerHTML = '<p class="text-slate-500">マイリストのコードをここでプレビューします。</p>';
+        return;
+      }
+      myList.forEach(name => {
+        const chord = chordData[name];
+        const card = document.createElement('div');
+        card.className = 'bg-white p-2 rounded shadow-sm text-center';
+        const title = document.createElement('div');
+        title.className = 'font-semibold mb-2';
+        title.textContent = name;
+        card.appendChild(title);
+
+        const chart = document.createElement('div');
+        chart.className = 'flex justify-center';
+        chart.style.minHeight = '110px';
+        card.appendChild(chart);
+
+        drawChordChart(chart, name, chord);
+        previewArea.appendChild(card);
+      });
+    }
+
+    function drawChordChart(container, chordName, chord) {
+      container.innerHTML = '';
+      if (window.Vexchords && typeof Vexchords.ChordBox === 'function') {
+        try {
+          const box = new Vexchords.ChordBox(container, { width: 120, height: 130, numStrings: 4, numFrets: 4 });
+          // vexchords expects 1-based string order from left to right? we adapt
+          const positions = chord.frets.map((fret, idx) => {
+            return {
+              string: idx + 1,
+              fret: fret === 'x' ? 0 : fret,
+              finger: fret === 0 ? 0 : fret,
+              muted: fret === 'x'
+            };
+          });
+          box.setChord({
+            chord: chordName,
+            positions,
+            numFrets: 4,
+            position: 0
+          });
+          box.draw();
+          return;
+        } catch (error) {
+          // fallback表示
+          console.warn('vexchords描画でエラー', error);
+        }
+      }
+      container.textContent = `${chordName}: ${chord.frets.join('-')}`;
+    }
+
+    document.getElementById('saveListBtn').addEventListener('click', () => {
+      if (!myList.length) return alert('マイリストが空です。');
+      savedList.push([...myList]);
+      setLocalStorage();
+      updateSavedUI();
+      alert('保存されました');
+    });
+
+    savedListEl.addEventListener('click', e => {
+      if (e.target.dataset.load !== undefined) {
+        const idx = Number(e.target.dataset.load);
+        myList = [...savedList[idx]];
+        renderMyList();
+        renderPreview();
+      }
+      if (e.target.dataset.del !== undefined) {
+        const idx = Number(e.target.dataset.del);
+        savedList.splice(idx, 1);
+        setLocalStorage();
+        updateSavedUI();
+      }
+    });
+
+    myListEl.addEventListener('click', e => {
+      if (e.target.dataset.remove !== undefined) {
+        const idx = Number(e.target.dataset.remove);
+        myList.splice(idx, 1);
+        renderMyList();
+        renderPreview();
+      }
+    });
+
+    function renderAvailable() {
+      availableChordsEl.innerHTML = '';
+      chordNames.forEach(name => {
+        const card = document.createElement('article');
+        card.className = 'bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex flex-col gap-2';
+
+        const title = document.createElement('h3');
+        title.className = 'font-medium text-slate-700';
+        title.textContent = name;
+
+        const btn = document.createElement('button');
+        btn.className = 'bg-indigo-600 text-white rounded px-2 py-1 text-sm hover:bg-indigo-700';
+        btn.textContent = 'マイリストに追加';
+        btn.addEventListener('click', () => {
+          if (myList.length >= 16) return alert('マイリストは最大16コードです');
+          myList.push(name);
+          renderMyList();
+          renderPreview();
+        });
+
+        const preview = document.createElement('div');
+        preview.className = 'h-24 flex items-center justify-center';
+        drawChordChart(preview, name, chordData[name]);
+
+        card.append(title, preview, btn);
+        availableChordsEl.appendChild(card);
+      });
+    }
+
+    function init() {
+      renderAvailable();
+      renderMyList();
+      renderPreview();
+      updateSavedUI();
+    }
+
+    init();
+  </script>
 </body>
 </html>
