@@ -237,6 +237,7 @@
           <span><strong>${entry.name || '名前なし'}</strong> (${chordCount}コード)</span>
           <div class="space-x-2">
             <button class="text-indigo-600 hover:underline" data-load="${idx}">読み込み</button>
+            <button class="text-purple-600 hover:underline" data-fullscreen="${idx}">全画面</button>
             <button class="text-rose-600 hover:underline" data-del="${idx}">削除</button>
           </div>
         `;
@@ -325,10 +326,10 @@
       renderPreview();
     });
 
-    function renderPreview() {
-      previewArea.innerHTML = '';
-      if (!myList.length) {
-        previewArea.innerHTML = '<p class="text-slate-500">マイリストのコードをここでプレビューします。</p>';
+    function renderPreview(list = myList, target = previewArea) {
+      target.innerHTML = '';
+      if (!list.length) {
+        target.innerHTML = '<p class="text-slate-500">コードがありません。</p>';
         return;
       }
       const wrapper = document.createElement('div');
@@ -336,7 +337,7 @@
       const cardContainer = document.createElement('div');
       cardContainer.className = 'grid grid-cols-4 gap-2 pb-4';
       
-      myList.forEach(name => {
+      list.forEach(name => {
         if (name === '---') {
           const breakDiv = document.createElement('div');
           breakDiv.className = 'col-span-full border-t-2 border-rose-300 my-2';
@@ -354,7 +355,7 @@
 
         const chart = document.createElement('div');
         chart.className = 'flex justify-center';
-        chart.style.minHeight = '80px';
+        chart.style.minHeight = '110px';
         card.appendChild(chart);
 
         drawChordChart(chart, name, chord);
@@ -367,7 +368,7 @@
       });
       
       wrapper.appendChild(cardContainer);
-      previewArea.appendChild(wrapper);
+      target.appendChild(wrapper);
     }
 
     function drawChordChart(container, chordName, chord) {
@@ -503,6 +504,12 @@
         savedList.splice(idx, 1);
         setLocalStorage();
         updateSavedUI();
+      }
+      if (e.target.dataset.fullscreen !== undefined) {
+        const idx = Number(e.target.dataset.fullscreen);
+        const entry = savedList[idx];
+        renderPreview(entry.chords, document.getElementById('fullscreenPreviewArea'));
+        document.getElementById('fullscreenModal').classList.remove('hidden');
       }
     });
 
