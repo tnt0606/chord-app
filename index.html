@@ -42,35 +42,93 @@
   </div>
 
   <script>
-    const chordData = {
-      C: { frets:[0,0,0,3], text:'C' },
-      Cm: { frets:[0,3,3,3], text:'Cm' },
-      C7: { frets:[0,0,0,1], text:'C7' },
-      Cmaj7: { frets:[0,0,0,2], text:'Cmaj7' },
-      D: { frets:[2,2,2,0], text:'D' },
-      Dm: { frets:[2,2,1,0], text:'Dm' },
-      D7: { frets:[2,2,0,2], text:'D7' },
-      Dmaj7: { frets:[2,2,2,1], text:'Dmaj7' },
-      E: { frets:[4,4,0,2], text:'E' },
-      Em: { frets:[0,4,3,2], text:'Em' },
-      E7: { frets:[1,2,0,2], text:'E7' },
-      F: { frets:[2,0,1,0], text:'F' },
-      G: { frets:[0,2,3,2], text:'G' },
-      Gm: { frets:[3,5,3,3], text:'Gm' },
-      G7: { frets:[0,2,3,1], text:'G7' },
-      Gmaj7: { frets:[0,2,3,0], text:'Gmaj7' },
-      A: { frets:[2,1,0,0], text:'A' },
-      Am: { frets:[2,0,0,0], text:'Am' },
-      A7: { frets:[0,1,0,0], text:'A7' },
-      B: { frets:[4,4,4,2], text:'B' },
-      Bm: { frets:[4,2,4,2], text:'Bm' },
-      B7: { frets:[2,4,4,2], text:'B7' },
-      Am7: { frets:[0,0,0,0], text:'Am7' },
-      Dm7: { frets:[2,2,1,3], text:'Dm7' },
-      Em7: { frets:[0,2,0,0], text:'Em7' },
-      Sus2: { frets:[0,2,3,0], text:'Gsus2' },
-      Sus4: { frets:[0,2,3,3], text:'Gsus4' }
+    // ベースノートごとにコード種別でグループ化
+    const baseNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    
+    const chordByNote = {
+      C: {
+        '': { frets:[0,0,0,3] },
+        'm': { frets:[0,3,3,3] },
+        '7': { frets:[0,0,0,1] },
+        'maj7': { frets:[0,0,0,2] },
+        'm7': { frets:[0,0,0,0] },
+        'sus2': { frets:[0,2,3,0] },
+        'sus4': { frets:[0,0,1,3] }
+      },
+      D: {
+        '': { frets:[2,2,2,0] },
+        'm': { frets:[2,2,1,0] },
+        '7': { frets:[2,2,0,2] },
+        'maj7': { frets:[2,2,2,1] },
+        'm7': { frets:[2,2,1,3] },
+        'sus2': { frets:[2,2,0,0] },
+        'sus4': { frets:[0,2,3,0] }
+      },
+      E: {
+        '': { frets:[4,4,0,2] },
+        'm': { frets:[0,4,3,2] },
+        '7': { frets:[1,2,0,2] },
+        'maj7': { frets:[1,4,1,2] },
+        'm7': { frets:[0,2,0,0] },
+        'sus2': { frets:[2,4,4,2] },
+        'sus4': { frets:[2,4,4,4] }
+      },
+      F: {
+        '': { frets:[2,0,1,0] },
+        'm': { frets:[1,3,3,1] },
+        '7': { frets:[2,3,1,3] },
+        'maj7': { frets:[2,0,1,3] },
+        'm7': { frets:[1,3,1,1] },
+        'sus2': { frets:[3,0,1,1] },
+        'sus4': { frets:[3,0,3,0] }
+      },
+      G: {
+        '': { frets:[0,2,3,2] },
+        'm': { frets:[3,5,3,3] },
+        '7': { frets:[0,2,3,1] },
+        'maj7': { frets:[0,2,3,0] },
+        'm7': { frets:[3,5,3,5] },
+        'sus2': { frets:[0,2,3,0] },
+        'sus4': { frets:[0,2,3,3] }
+      },
+      A: {
+        '': { frets:[2,1,0,0] },
+        'm': { frets:[2,0,0,0] },
+        '7': { frets:[0,1,0,0] },
+        'maj7': { frets:[1,1,0,0] },
+        'm7': { frets:[0,0,0,0] },
+        'sus2': { frets:[2,4,5,0] },
+        'sus4': { frets:[2,2,0,0] }
+      },
+      B: {
+        '': { frets:[4,4,4,2] },
+        'm': { frets:[4,2,4,2] },
+        '7': { frets:[2,4,4,2] },
+        'maj7': { frets:[3,4,4,2] },
+        'm7': { frets:[2,2,2,2] },
+        'sus2': { frets:[4,4,2,2] },
+        'sus4': { frets:[4,4,5,4] }
+      }
     };
+    
+    const chordTypes = {
+      '': 'Major',
+      'm': 'Minor',
+      '7': '7th',
+      'maj7': 'maj7',
+      'm7': 'm7',
+      'sus2': 'sus2',
+      'sus4': 'sus4'
+    };
+    
+    // フラット化したデータ（互換性用）
+    const chordData = {};
+    baseNotes.forEach(note => {
+      Object.entries(chordByNote[note]).forEach(([type, frets]) => {
+        const name = type ? note + type : note;
+        chordData[name] = frets;
+      });
+    });
 
     const availableChordsEl = document.getElementById('availableChords');
     const myListEl = document.getElementById('myList');
@@ -88,8 +146,6 @@
       }
       return entry;
     });
-
-    const chordNames = Object.keys(chordData);
 
     function updateSavedUI() {
       savedListEl.innerHTML = '';
@@ -292,7 +348,7 @@
       }
 
       // フレットマークとフィンガー
-      chord.frets.forEach((fret, s) => {
+      chord.forEach((fret, s) => {
         const x = marginX + (woodWidth / (stringCount - 1)) * s;
         if (fret === 'x' || fret === 'X') {
           const text = document.createElementNS(svgNS, 'text');
@@ -403,30 +459,76 @@
       }
     });
 
+    let selectedBaseNote = null; // 選択中のベースノート
+    
     function renderAvailable() {
       availableChordsEl.innerHTML = '';
-      chordNames.forEach(name => {
-        const card = document.createElement('article');
-        card.className = 'bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex flex-col gap-2 cursor-pointer hover:shadow-md hover:border-indigo-400 transition';
-
-        const title = document.createElement('h3');
-        title.className = 'font-medium text-slate-700 text-center';
-        title.textContent = name;
-
-        const preview = document.createElement('div');
-        preview.className = 'h-24 flex items-center justify-center hover:bg-indigo-50 rounded transition';
-        drawChordChart(preview, name, chordData[name]);
-
-        // カード全体がクリック可能
-        card.addEventListener('click', () => {
-          myList.push(name);
-          renderMyList();
-          renderPreview();
+      
+      if (selectedBaseNote === null) {
+        // 段階1：ベースノート選択
+        const header = document.createElement('div');
+        header.className = 'col-span-full mb-2';
+        header.innerHTML = '<p class="text-slate-600 text-sm">ステップ1: ベースノートを選択してください</p>';
+        availableChordsEl.appendChild(header);
+        
+        baseNotes.forEach(note => {
+          const btn = document.createElement('button');
+          btn.className = 'bg-white border-2 border-slate-300 rounded-lg p-4 text-lg font-bold hover:border-indigo-500 hover:bg-indigo-50 transition';
+          btn.textContent = note;
+          btn.addEventListener('click', () => {
+            selectedBaseNote = note;
+            renderAvailable();
+          });
+          availableChordsEl.appendChild(btn);
         });
+      } else {
+        // 段階2：コード種選択
+        const header = document.createElement('div');
+        header.className = 'col-span-full mb-3 flex items-center justify-between';
+        const title = document.createElement('p');
+        title.className = 'text-slate-600 font-semibold';
+        title.innerHTML = `ステップ2: <strong>${selectedBaseNote}</strong> のコード種を選択`;
+        const backBtn = document.createElement('button');
+        backBtn.className = 'bg-slate-400 text-white px-3 py-1 rounded text-sm hover:bg-slate-500';
+        backBtn.textContent = '戻る';
+        backBtn.addEventListener('click', () => {
+          selectedBaseNote = null;
+          renderAvailable();
+        });
+        header.appendChild(title);
+        header.appendChild(backBtn);
+        availableChordsEl.appendChild(header);
+        
+        // コード種を表示
+        Object.entries(chordByNote[selectedBaseNote]).forEach(([type, frets]) => {
+          const chordName = type ? selectedBaseNote + type : selectedBaseNote;
+          const card = document.createElement('article');
+          card.className = 'bg-white rounded-lg p-3 border border-slate-200 shadow-sm flex flex-col gap-2 cursor-pointer hover:shadow-md hover:border-indigo-400 transition';
 
-        card.append(title, preview);
-        availableChordsEl.appendChild(card);
-      });
+          const title = document.createElement('h3');
+          title.className = 'font-medium text-slate-700 text-center';
+          title.textContent = chordName;
+          
+          const typeLabel = document.createElement('p');
+          typeLabel.className = 'text-xs text-slate-500 text-center';
+          typeLabel.textContent = `${chordTypes[type] || 'Major'}`;
+
+          const preview = document.createElement('div');
+          preview.className = 'h-24 flex items-center justify-center hover:bg-indigo-50 rounded transition';
+          drawChordChart(preview, chordName, frets);
+
+          card.addEventListener('click', () => {
+            myList.push(chordName);
+            renderMyList();
+            renderPreview();
+            selectedBaseNote = null;
+            renderAvailable();
+          });
+
+          card.append(title, typeLabel, preview);
+          availableChordsEl.appendChild(card);
+        });
+      }
     }
 
     function init() {
