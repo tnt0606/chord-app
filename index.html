@@ -21,10 +21,13 @@
     <section id="myListSection" class="bg-white rounded-xl shadow p-5">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-xl font-semibold text-slate-700">作成中のマイリスト（並び替え可能）</h2>
-        <button id="saveListBtn" class="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700">保存</button>
+        <div class="space-x-2">
+          <button id="breakLineBtn" class="bg-sky-600 text-white px-3 py-1.5 rounded text-sm hover:bg-sky-700">改行</button>
+          <button id="saveListBtn" class="bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700">保存</button>
+        </div>
       </div>
       <ul id="myList" class="space-y-2 min-h-[160px] border border-dashed border-slate-300 rounded p-3"></ul>
-      <p class="text-xs text-slate-500 mt-2">ドラッグ&ドロップで順序変更できます。個別の「削除」も可能です。</p>
+      <p class="text-xs text-slate-500 mt-2">ドラッグ&ドロップで順序変更、「改行」で区切り挿入、「保存」でリスト保存。</p>
     </section>
 
     <section id="savedSection" class="bg-white rounded-xl shadow p-5">
@@ -73,8 +76,10 @@
       savedList.forEach((entry, idx) => {
         const li = document.createElement('li');
         li.className = 'flex justify-between items-center bg-slate-50 p-2 rounded';
+        const displayName = entry.name ? `<strong>${entry.name}</strong>: ` : '';
+        const chordCount = entry.chords.filter(c => c !== '---').length;
         li.innerHTML = `
-          <span>${entry.join(' ')} (${entry.length}コード)</span>
+          <span>${displayName}${entry.chords.join(' ')} (${chordCount}コード)</span>
           <div class="space-x-2">
             <button class="text-indigo-600 hover:underline" data-load="${idx}">読み込み</button>
             <button class="text-rose-600 hover:underline" data-del="${idx}">削除</button>
@@ -95,10 +100,15 @@
       }
       myList.forEach((name, idx) => {
         const li = document.createElement('li');
-        li.className = 'bg-indigo-50 rounded p-2 flex justify-between items-center cursor-move';
+        if (name === '---') {
+          li.className = 'bg-rose-100 rounded p-1 flex justify-between items-center cursor-move';
+          li.innerHTML = `<span class="italic text-rose-600">━━━ 改行 ━━━</span><button class="text-rose-600 text-sm" data-remove="${idx}">削除</button>`;
+        } else {
+          li.className = 'bg-indigo-50 rounded p-2 flex justify-between items-center cursor-move';
+          li.innerHTML = `<span>${name}</span><button class="text-rose-600 text-sm" data-remove="${idx}">削除</button>`;
+        }
         li.draggable = true;
         li.dataset.index = idx;
-        li.innerHTML = `<span>${name}</span><button class="text-rose-600 text-sm" data-remove="${idx}">削除</button>`;
 
         li.addEventListener('dragstart', e => {
           e.dataTransfer.setData('text/plain', idx);
@@ -143,10 +153,22 @@
         previewArea.innerHTML = '<p class="text-slate-500">マイリストのコードをここでプレビューします。</p>';
         return;
       }
+      const wrapper = document.createElement('div');
+      wrapper.className = 'col-span-full';
+      const cardContainer = document.createElement('div');
+      cardContainer.className = 'flex flex-wrap gap-4 pb-4';
+      
       myList.forEach(name => {
+        if (name === '---') {
+          const breakDiv = document.createElement('div');
+          breakDiv.className = 'w-full border-t-2 border-rose-300 my-2';
+          cardContainer.appendChild(breakDiv);
+          return;
+        }
+        
         const chord = chordData[name];
         const card = document.createElement('div');
-        card.className = 'bg-white p-2 rounded shadow-sm text-center';
+        card.className = 'bg-white p-2 rounded shadow-sm text-center flex-shrink-0';
         const title = document.createElement('div');
         title.className = 'font-semibold mb-2';
         title.textContent = name;
@@ -158,8 +180,11 @@
         card.appendChild(chart);
 
         drawChordChart(chart, name, chord);
-        previewArea.appendChild(card);
+        cardContainer.appendChild(card);
       });
+      
+      wrapper.appendChild(cardContainer);
+      previewArea.appendChild(wrapper);
     }
 
     function drawChordChart(container, chordName, chord) {
@@ -255,9 +280,20 @@
       container.appendChild(svg);
     }
 
+    document.getElementById('breakLineBtn').addEventListener('click', () => {
+      myList.push('---');
+      renderMyList();
+      renderPreview();
+    });
+
     document.getElementById('saveListBtn').addEventListener('click', () => {
       if (!myList.length) return alert('マイリストが空です。');
-      savedList.push([...myList]);
+      const name = prompt('このリストに名前をつけてください:');
+      if (name === null) return;
+      savedList.push({
+        name: name || '名前なし',
+        chords: [...myList]
+      });
       setLocalStorage();
       updateSavedUI();
       alert('保存されました');
@@ -266,7 +302,7 @@
     savedListEl.addEventListener('click', e => {
       if (e.target.dataset.load !== undefined) {
         const idx = Number(e.target.dataset.load);
-        myList = [...savedList[idx]];
+        myList = [...savedList[idx].chords];
         renderMyList();
         renderPreview();
       }
