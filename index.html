@@ -658,12 +658,18 @@
       const inst = instruments[currentInstrument];
       const width = inst.numStrings === 4 ? 60 : 80;
       const height = 75;
+      const rotatedWidth = height;
+      const rotatedHeight = width;
       const svgNS = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(svgNS, 'svg');
-      svg.setAttribute('viewBox', `0 0 ${width} 75`);
-      svg.setAttribute('width', width.toString());
-      svg.setAttribute('height', '75');
+      svg.setAttribute('viewBox', `0 0 ${rotatedWidth} ${rotatedHeight}`);
+      svg.setAttribute('width', rotatedWidth.toString());
+      svg.setAttribute('height', rotatedHeight.toString());
       svg.classList.add('mx-auto');
+
+      // もとの座標系で描画してから、反時計回りに90度回転する
+      const drawingLayer = document.createElementNS(svgNS, 'g');
+      drawingLayer.setAttribute('transform', `translate(0 ${width}) rotate(-90)`);
 
       const marginX = 6;
       const marginY = 6;
@@ -682,7 +688,7 @@
         line.setAttribute('y2', y);
         line.setAttribute('stroke', f === 0 ? '#444' : '#bbb');
         line.setAttribute('stroke-width', f === 0 ? 3 : 1);
-        svg.appendChild(line);
+        drawingLayer.appendChild(line);
       }
 
       // 弦線
@@ -695,7 +701,7 @@
         line.setAttribute('y2', height - marginY);
         line.setAttribute('stroke', '#777');
         line.setAttribute('stroke-width', 1);
-        svg.appendChild(line);
+        drawingLayer.appendChild(line);
 
         const note = inst.tuning[s];
         const text = document.createElementNS(svgNS, 'text');
@@ -705,7 +711,7 @@
         text.setAttribute('font-size', '8');
         text.setAttribute('fill', '#333');
         text.textContent = note;
-        svg.appendChild(text);
+        drawingLayer.appendChild(text);
       }
 
       // フレットマークとフィンガー
@@ -720,7 +726,7 @@
           text.setAttribute('font-size', '9');
           text.setAttribute('fill', '#e11d48');
           text.textContent = '✕';
-          svg.appendChild(text);
+          drawingLayer.appendChild(text);
           return;
         }
         if (fret === 0) {
@@ -731,7 +737,7 @@
           text.setAttribute('font-size', '9');
           text.setAttribute('fill', '#111827');
           text.textContent = '○';
-          svg.appendChild(text);
+          drawingLayer.appendChild(text);
           return;
         }
         if (fret > 0) {
@@ -741,10 +747,11 @@
           circle.setAttribute('cy', y);
           circle.setAttribute('r', 4);
           circle.setAttribute('fill', '#4f46e5');
-          svg.appendChild(circle);
+          drawingLayer.appendChild(circle);
         }
       });
 
+      svg.appendChild(drawingLayer);
       container.appendChild(svg);
     }
 
