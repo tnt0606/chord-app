@@ -289,6 +289,11 @@
         card.appendChild(chart);
 
         drawChordChart(chart, name, chord);
+        
+        card.addEventListener('click', () => {
+          playChord(name);
+        });
+        
         cardContainer.appendChild(card);
       });
       
@@ -524,6 +529,7 @@
             drawChordChart(preview, chordName, frets);
 
             card.addEventListener('click', () => {
+              playChord(chordName);
               myList.push(chordName);
               renderMyList();
               renderPreview();
@@ -536,6 +542,43 @@
           }
         });
       }
+    }
+
+    // ウクレレのチューニング (A4, E4, C4, G4)
+    const ukuleleTuning = [440, 329.63, 261.63, 392];
+
+    // フレットから周波数を計算
+    function getFrequency(stringIndex, fret) {
+      return ukuleleTuning[stringIndex] * Math.pow(2, fret / 12);
+    }
+
+    // コードの音を再生
+    function playChord(chordName) {
+      const chord = chordData[chordName];
+      if (!chord || !chord.frets) return;
+
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioCtx.currentTime;
+
+      chord.frets.forEach((fret, stringIndex) => {
+        if (fret !== -1 && fret !== null) {
+          const freq = getFrequency(stringIndex, fret);
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+
+          oscillator.frequency.setValueAtTime(freq, now);
+          oscillator.type = 'triangle'; // より自然な音
+
+          gainNode.gain.setValueAtTime(0.05, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1); // フェードアウト
+
+          oscillator.start(now);
+          oscillator.stop(now + 1);
+        }
+      });
     }
 
     function init() {
