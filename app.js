@@ -5,7 +5,12 @@ const chordData = {
   F: { frets:[2,0,1,0], position:0, text:'F' },
   Dm: { frets:[2,2,1,0], position:0, text:'Dm' },
   Em: { frets:[0,4,3,2], position:0, text:'Em' },
-  D7: { frets:[2,2,0,2], position:0, text:'D7' }
+  D7: { frets:[2,2,0,2], position:0, text:'D7' },
+  D: { frets:[2,2,2,0], position:0, text:'D' },
+  A: { frets:[2,1,0,0], position:0, text:'A' },
+  E: { frets:[4,4,0,2], position:0, text:'E' },
+  B: { frets:[4,4,4,2], position:0, text:'B' },
+  Bm: { frets:[4,2,4,2], position:0, text:'Bm' }
 };
 
 const input = document.getElementById('chordInput');
@@ -21,59 +26,30 @@ function makeChordCard(chordName, chord) {
   title.textContent = chordName;
   card.appendChild(title);
 
-  const diagramContainer = document.createElement('div');
-  diagramContainer.className = 'diagram-container';
-
-  // フレット番号
-  const fretNumbers = document.createElement('div');
-  fretNumbers.className = 'fret-numbers';
-  for (let i = 0; i < 4; i++) {
-    const numDiv = document.createElement('div');
-    numDiv.textContent = i;
-    numDiv.className = 'fret-number';
-    fretNumbers.appendChild(numDiv);
-  }
-  diagramContainer.appendChild(fretNumbers);
-
   const diagram = document.createElement('div');
   diagram.className = 'diagram';
+  diagram.id = `chord-${chordName}-${Math.random().toString(36).substr(2, 9)}`; // unique id
+  card.appendChild(diagram);
 
-  // 弦の線を追加
-  for (let string = 0; string < 4; string++) {
-    const stringLine = document.createElement('div');
-    stringLine.className = `string-line string-${string}`;
-    diagram.appendChild(stringLine);
-  }
-
-  // 4 strings / 4 frets視覚化
-  for (let fret = 0; fret < 4; fret++) {
-    const row = document.createElement('div');
-    row.className = 'fret-row';
-    row.style.height = '24px';
-    for (let string = 0; string < 4; string++) {
-      const cell = document.createElement('div');
-      cell.className = `grid-cell string-${string}`;
-      const isFinger = chord.frets[string] === fret + 1;
-      if (isFinger) {
-        const dot = document.createElement('span');
-        dot.className = 'dot';
-        dot.style.left = `${(string * 25) + 12.5}%`;
-        dot.style.top = `${fret * 25 + 12.5}%`;
-        row.appendChild(dot);
-      }
-      row.appendChild(cell);
-    }
-    diagram.appendChild(row);
-  }
-
-  diagramContainer.appendChild(diagram);
+  // Chord.jsで描画
+  const chordBox = new ChordBox(`#${diagram.id}`, {
+    tuning: ['G', 'C', 'E', 'A'], // ウクレレのチューニング
+    numFrets: 4,
+    numStrings: 4,
+    width: 100,
+    height: 120
+  });
+  chordBox.draw({
+    chord: chordName,
+    position: chord.position,
+    fingers: chord.frets
+  });
 
   const info = document.createElement('div');
   info.className = 'open-closed';
   const details = chord.frets.map((f, i) => `${['G','C','E','A'][i]}:${f===0?'O':f==='x'?'✕':f}`).join(' ');
   info.textContent = details;
 
-  card.appendChild(diagramContainer);
   card.appendChild(info);
   return card;
 }
