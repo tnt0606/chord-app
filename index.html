@@ -5,30 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ウクレレコード譜ジェネレーター</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    #previewSection:fullscreen {
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      background: white !important;
-      z-index: 9999 !important;
-      padding: 20px !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-    }
-    #previewSection:fullscreen h2 {
-      font-size: 2rem !important;
-    }
-    #previewSection:fullscreen #previewArea {
-      height: calc(100vh - 120px) !important;
-      overflow-y: auto !important;
-    }
-    #previewSection:fullscreen #fullscreenBtn {
-      display: none !important;
-    }
-  </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
   <div class="max-w-6xl mx-auto p-4 space-y-6">
@@ -67,6 +43,16 @@
         <button id="fullscreenBtn" class="bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700">全画面</button>
       </div>
       <div id="previewArea" class="grid grid-cols-4 gap-2 pb-4"></div>
+    <section id="fullscreenModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+      <div class="flex items-center justify-center h-full p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-full overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold">プレビュー（全画面）</h2>
+            <button id="closeFullscreenBtn" class="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
+          </div>
+          <div id="fullscreenPreviewArea" class="grid grid-cols-4 gap-2"></div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -644,13 +630,21 @@
 
     // 全画面ボタン
     document.getElementById('fullscreenBtn').addEventListener('click', () => {
-      const previewSection = document.getElementById('previewSection');
-      if (previewSection.requestFullscreen) {
-        previewSection.requestFullscreen();
-      } else if (previewSection.webkitRequestFullscreen) { // Safari
-        previewSection.webkitRequestFullscreen();
-      } else if (previewSection.msRequestFullscreen) { // IE
-        previewSection.msRequestFullscreen();
+      const modal = document.getElementById('fullscreenModal');
+      const fullscreenArea = document.getElementById('fullscreenPreviewArea');
+      fullscreenArea.innerHTML = document.getElementById('previewArea').innerHTML;
+      modal.classList.remove('hidden');
+    });
+
+    // 閉じるボタン
+    document.getElementById('closeFullscreenBtn').addEventListener('click', () => {
+      document.getElementById('fullscreenModal').classList.add('hidden');
+    });
+
+    // モーダル外クリックで閉じる
+    document.getElementById('fullscreenModal').addEventListener('click', (e) => {
+      if (e.target.id === 'fullscreenModal') {
+        document.getElementById('fullscreenModal').classList.add('hidden');
       }
     });
 
