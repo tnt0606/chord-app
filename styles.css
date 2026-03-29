@@ -27,7 +27,7 @@ header p{margin:8px 0 24px; color:#4f4f63;}
 .chord-area{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;}
 .chord-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;}
 .chord-card h3{margin:0 0 8px;font-size:1.05rem;text-align:center;}
-.diagram{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;border:1px solid #c6c6dc;background:#c6c6dc;margin:0 auto;}
+.diagram{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;border:1px solid #c6c6dc;background:#c6c6dc;margin:0 auto;position:relative;}
 .net{width:100%;padding-top:100%;position:relative;background:#fff;}
 .net:hover{box-shadow:0 0 0 2px rgba(79,70,229,.2);}
 .grid-cell{position:absolute;top:0;left:0;width:100%;height:100%;}
@@ -39,6 +39,8 @@ header p{margin:8px 0 24px; color:#4f4f63;}
 .string-2{left:62.5%;}
 .string-3{left:87.5%;}
 .dot{position:absolute;width:10px;height:10px;background:#4f46e5;border-radius:50%;transform:translate(-50%, -50%);}
-.open-closed{font-size:.8rem;text-align:center;margin-top:8px;color:#7b7b95;}
+.diagram-container{display:flex;align-items:center;}
+.fret-numbers{display:flex;flex-direction:column;margin-right:8px;}
+.fret-number{font-size:0.8rem;color:#7b7b95;width:12px;text-align:right;}
 .notes{margin-top:28px;padding:14px 18px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.95);}
 .notes h2{margin-top:0;font-size:1.15rem;}

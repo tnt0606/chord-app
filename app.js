@@ -21,8 +21,29 @@ function makeChordCard(chordName, chord) {
   title.textContent = chordName;
   card.appendChild(title);
 
+  const diagramContainer = document.createElement('div');
+  diagramContainer.className = 'diagram-container';
+
+  // フレット番号
+  const fretNumbers = document.createElement('div');
+  fretNumbers.className = 'fret-numbers';
+  for (let i = 0; i < 4; i++) {
+    const numDiv = document.createElement('div');
+    numDiv.textContent = i;
+    numDiv.className = 'fret-number';
+    fretNumbers.appendChild(numDiv);
+  }
+  diagramContainer.appendChild(fretNumbers);
+
   const diagram = document.createElement('div');
   diagram.className = 'diagram';
+
+  // 弦の線を追加
+  for (let string = 0; string < 4; string++) {
+    const stringLine = document.createElement('div');
+    stringLine.className = `string-line string-${string}`;
+    diagram.appendChild(stringLine);
+  }
 
   // 4 strings / 4 frets視覚化
   for (let fret = 0; fret < 4; fret++) {
@@ -45,12 +66,14 @@ function makeChordCard(chordName, chord) {
     diagram.appendChild(row);
   }
 
+  diagramContainer.appendChild(diagram);
+
   const info = document.createElement('div');
   info.className = 'open-closed';
   const details = chord.frets.map((f, i) => `${['G','C','E','A'][i]}:${f===0?'O':f==='x'?'✕':f}`).join(' ');
   info.textContent = details;
 
-  card.appendChild(diagram);
+  card.appendChild(diagramContainer);
   card.appendChild(info);
   return card;
 }
