@@ -606,12 +606,12 @@
         }
         const title = document.createElement('div');
         title.className = 'font-semibold mb-1 text-sm';
-        title.textContent = actualName;
+        title.textContent = capo > 0 ? shapeName : actualName;
         card.appendChild(title);
 
         const shapeLabel = document.createElement('div');
         shapeLabel.className = 'text-[10px] text-slate-500 mb-1';
-        shapeLabel.textContent = capo > 0 ? `押さえ: ${shapeName}` : '押さえ: そのまま';
+        shapeLabel.textContent = capo > 0 ? `実音: ${actualName} / カポ: ${capo}` : '押さえ: そのまま';
         card.appendChild(shapeLabel);
 
         const chart = document.createElement('div');
@@ -799,8 +799,9 @@
       if (e.target.dataset.fullscreen !== undefined) {
         const idx = Number(e.target.dataset.fullscreen);
         const entry = savedList[idx];
-        document.querySelector('#fullscreenModal h2').textContent = `${entry.name}`;
-        renderPreview(entry.chords, document.getElementById('fullscreenPreviewArea'), entry.capo || 0);
+        const entryCapo = entry && Number.isInteger(entry.capo) ? entry.capo : 0;
+        document.querySelector('#fullscreenModal h2').textContent = `${entry.name} (カポ: ${entryCapo})`;
+        renderPreview(entry.chords, document.getElementById('fullscreenPreviewArea'), entryCapo);
         document.getElementById('fullscreenModal').classList.remove('hidden');
       }
     });
@@ -969,7 +970,7 @@
 
     // 全画面ボタン
     document.getElementById('fullscreenBtn').addEventListener('click', () => {
-      document.querySelector('#fullscreenModal h2').textContent = 'マイリスト';
+      document.querySelector('#fullscreenModal h2').textContent = `マイリスト (カポ: ${capoPosition})`;
       const modal = document.getElementById('fullscreenModal');
       const fullscreenArea = document.getElementById('fullscreenPreviewArea');
       renderPreview(myList, fullscreenArea, capoPosition, { editable: false });
