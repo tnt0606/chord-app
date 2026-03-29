@@ -12,6 +12,8 @@
       <h1 class="text-2xl font-bold text-indigo-700">ウクレレコード譜ジェネレーター</h1>
     </header>
 
+    <div id="debugLog" class="bg-yellow-100 p-2 text-xs text-yellow-800"></div>
+
     <section id="savedSection" class="bg-white rounded-xl shadow p-5">
       <h2 class="text-xl font-semibold text-slate-700 mb-3">保存済みリスト</h2>
       <ul id="savedList" class="space-y-2 min-h-[100px] border border-slate-200 rounded p-3"></ul>
@@ -196,6 +198,7 @@
     });
 
     function updateSavedUI() {
+      document.getElementById('debugLog').innerHTML += 'updateSavedUI called<br>';
       savedListEl.innerHTML = '';
       if (!savedList.length) {
         savedListEl.innerHTML = '<li class="text-slate-500">保存済みのコードがありません。</li>';
@@ -511,6 +514,7 @@
     let selectedBaseNote = null; // 選択中のベースノート
     
     function renderAvailable() {
+      document.getElementById('debugLog').innerHTML += 'renderAvailable called<br>';
       availableChordsEl.innerHTML = '';
       
       if (selectedBaseNote === null) {
@@ -623,6 +627,7 @@
 
     // 全画面ボタン
     document.getElementById('fullscreenBtn').addEventListener('click', () => {
+      document.getElementById('debugLog').innerHTML += 'fullscreenBtn clicked<br>';
       document.querySelector('#fullscreenModal h2').textContent = 'プレビュー';
       const modal = document.getElementById('fullscreenModal');
       const fullscreenArea = document.getElementById('fullscreenPreviewArea');
@@ -690,6 +695,7 @@
     });
 
     function init() {
+      document.getElementById('debugLog').innerHTML += 'init called<br>';
       renderAvailable();
       renderMyList();
       renderPreview();
