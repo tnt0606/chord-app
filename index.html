@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ウクレレコード譜ジェネレーター</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/vexchords@1.1.1/dist/vexchords.min.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
   <div class="max-w-6xl mx-auto p-4 space-y-6">
@@ -103,34 +102,40 @@
 
         li.addEventListener('dragstart', e => {
           e.dataTransfer.setData('text/plain', idx);
+          e.dataTransfer.effectAllowed = 'move';
           e.target.classList.add('opacity-50');
         });
         li.addEventListener('dragend', e => {
           e.target.classList.remove('opacity-50');
         });
 
-        li.addEventListener('dragover', e => {
-          e.preventDefault();
-          li.classList.add('ring-2 ring-indigo-400');
-        });
-        li.addEventListener('dragleave', () => {
-          li.classList.remove('ring-2 ring-indigo-400');
-        });
-        li.addEventListener('drop', e => {
-          e.preventDefault();
-          li.classList.remove('ring-2 ring-indigo-400');
-          const from = Number(e.dataTransfer.getData('text/plain'));
-          const to = Number(li.dataset.index);
-          if (from === to) return;
-          const moved = myList.splice(from,1)[0];
-          myList.splice(to,0,moved);
-          renderMyList();
-          renderPreview();
-        });
-
         myListEl.appendChild(li);
       });
     }
+
+    myListEl.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    myListEl.addEventListener('drop', e => {
+      e.preventDefault();
+      const from = Number(e.dataTransfer.getData('text/plain'));
+      if (Number.isNaN(from) || from < 0 || from >= myList.length) return;
+
+      const targetLi = e.target.closest('li');
+      let to = targetLi ? Number(targetLi.dataset.index) : myList.length - 1;
+      if (targetLi && from < to) to = to; // no adjustment needed since splice from first then insert; but we'll handle below
+      if (targetLi && from > to) to = to;
+      if (!targetLi) to = myList.length;
+
+      const moved = myList.splice(from, 1)[0];
+      if (to > myList.length) to = myList.length;
+      myList.splice(to, 0, moved);
+
+      renderMyList();
+      renderPreview();
+    });
 
     function renderPreview() {
       previewArea.innerHTML = '';
@@ -159,32 +164,95 @@
 
     function drawChordChart(container, chordName, chord) {
       container.innerHTML = '';
-      if (window.Vexchords && typeof Vexchords.ChordBox === 'function') {
-        try {
-          const box = new Vexchords.ChordBox(container, { width: 120, height: 130, numStrings: 4, numFrets: 4 });
-          // vexchords expects 1-based string order from left to right? we adapt
-          const positions = chord.frets.map((fret, idx) => {
-            return {
-              string: idx + 1,
-              fret: fret === 'x' ? 0 : fret,
-              finger: fret === 0 ? 0 : fret,
-              muted: fret === 'x'
-            };
-          });
-          box.setChord({
-            chord: chordName,
-            positions,
-            numFrets: 4,
-            position: 0
-          });
-          box.draw();
-          return;
-        } catch (error) {
-          // fallback表示
-          console.warn('vexchords描画でエラー', error);
-        }
+      const width = 100;
+      const height = 130;
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('viewBox', '0 0 100 130');
+      svg.setAttribute('width', '100');
+      svg.setAttribute('height', '130');
+      svg.classList.add('mx-auto');
+
+      const marginX = 15;
+      const marginY = 15;
+      const stringCount = 4;
+      const fretCount = 4;
+      const woodWidth = width - marginX * 2;
+      const woodHeight = height - marginY * 2;
+
+      // フレット線
+      for (let f = 0; f <= fretCount; f++) {
+        const y = marginY + (woodHeight / fretCount) * f;
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1', marginX);
+        line.setAttribute('x2', width - marginX);
+        line.setAttribute('y1', y);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', f === 0 ? '#444' : '#bbb');
+        line.setAttribute('stroke-width', f === 0 ? 3 : 1);
+        svg.appendChild(line);
       }
-      container.textContent = `${chordName}: ${chord.frets.join('-')}`;
+
+      // 弦線
+      for (let s = 0; s < stringCount; s++) {
+        const x = marginX + (woodWidth / (stringCount - 1)) * s;
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1', x);
+        line.setAttribute('x2', x);
+        line.setAttribute('y1', marginY);
+        line.setAttribute('y2', height - marginY);
+        line.setAttribute('stroke', '#777');
+        line.setAttribute('stroke-width', 1);
+        svg.appendChild(line);
+
+        const note = ['G','C','E','A'][s];
+        const text = document.createElementNS(svgNS, 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', marginY - 4);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '8');
+        text.setAttribute('fill', '#333');
+        text.textContent = note;
+        svg.appendChild(text);
+      }
+
+      // フレットマークとフィンガー
+      chord.frets.forEach((fret, s) => {
+        const x = marginX + (woodWidth / (stringCount - 1)) * s;
+        if (fret === 'x' || fret === 'X') {
+          const text = document.createElementNS(svgNS, 'text');
+          text.setAttribute('x', x);
+          text.setAttribute('y', marginY - 12);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('font-size', '9');
+          text.setAttribute('fill', '#e11d48');
+          text.textContent = '✕';
+          svg.appendChild(text);
+          return;
+        }
+        if (fret === 0) {
+          const text = document.createElementNS(svgNS, 'text');
+          text.setAttribute('x', x);
+          text.setAttribute('y', marginY - 12);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('font-size', '9');
+          text.setAttribute('fill', '#111827');
+          text.textContent = '○';
+          svg.appendChild(text);
+          return;
+        }
+        if (fret > 0) {
+          const y = marginY + (woodHeight / fretCount) * (fret - 0.5);
+          const circle = document.createElementNS(svgNS, 'circle');
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('r', 4);
+          circle.setAttribute('fill', '#4f46e5');
+          svg.appendChild(circle);
+        }
+      });
+
+      container.appendChild(svg);
     }
 
     document.getElementById('saveListBtn').addEventListener('click', () => {
