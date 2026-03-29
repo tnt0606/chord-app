@@ -1,8 +1,8 @@
 {
-  "name": "ukulele-chord-app",
+  "name": "chord-app",
   "version": "0.1.0",
   "private": true,
-  "description": "Ukulele chord chart web app scaffold",
+  "description": "Chord chart web app for ukulele and guitar",
   "scripts": {
     "start": "live-server --port=8000",
     "test": "echo \"No tests yet\" && exit 0"
