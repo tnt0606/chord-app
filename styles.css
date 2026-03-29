@@ -1,0 +1,44 @@
+:root {
+  --bg:#f7f7ff;
+  --card:#fff;
+  --text:#1d1d31;
+  --accent:#4f46e5;
+  --border:#d7d7eb;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: "Noto Sans JP", "Helvetica Neue", Arial, sans-serif;
+  background:linear-gradient(135deg, #eef2ff 0%, var(--bg) 100%);
+  color:var(--text);
+}
+.app-shell{
+  max-width:980px;
+  margin:32px auto;
+  padding:20px;
+}
+header h1{margin:0;font-size:1.9rem;}
+header p{margin:8px 0 24px; color:#4f4f63;}
+.controls{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;margin-bottom:20px;}
+.controls input{width:100%;padding:10px; border:1px solid var(--border);border-radius:8px;}
+.controls button{padding:10px 16px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer;font-weight:600;transition:transform .1s ease;}
+.controls button.secondary{background:#9ca3af;}
+.controls button:hover{transform:translateY(-1px);}
+.chord-area{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;}
+.chord-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;}
+.chord-card h3{margin:0 0 8px;font-size:1.05rem;text-align:center;}
+.diagram{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;border:1px solid #c6c6dc;background:#c6c6dc;margin:0 auto;}
+.net{width:100%;padding-top:100%;position:relative;background:#fff;}
+.net:hover{box-shadow:0 0 0 2px rgba(79,70,229,.2);}
+.grid-cell{position:absolute;top:0;left:0;width:100%;height:100%;}
+.fret-row{position:relative;height:25%;}
+.fret-row::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:#c7c7e1;}
+.string-line{position:absolute;top:0;bottom:0;width:1px;background:#c7c7e1;}
+.string-0{left:12.5%;}
+.string-1{left:37.5%;}
+.string-2{left:62.5%;}
+.string-3{left:87.5%;}
+.dot{position:absolute;width:10px;height:10px;background:#4f46e5;border-radius:50%;transform:translate(-50%, -50%);}
+.open-closed{font-size:.8rem;text-align:center;margin-top:8px;color:#7b7b95;}
+.notes{margin-top:28px;padding:14px 18px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.95);}
+.notes h2{margin-top:0;font-size:1.15rem;}

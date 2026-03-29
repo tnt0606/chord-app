@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ウクレレコード譜ジェネレーター</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header>
+      <h1>ウクレレコード譜ジェネレーター</h1>
+      <p>コード名を入力すると簡単にコード譜を表示します。</p>
+    </header>
+
+    <section class="controls">
+      <label for="chordInput">コード進行 (スペース区切り)</label>
+      <input id="chordInput" type="text" placeholder="例: C G Am F" value="C G Am F" />
+      <button id="renderBtn">表示</button>
+      <button id="clearBtn" class="secondary">クリア</button>
+    </section>
+
+    <section class="chord-area" aria-live="polite" id="chordArea">
+      <!-- チャートが追加される -->
+    </section>
+
+    <section class="notes">
+      <h2>使い方</h2>
+      <ul>
+        <li>コード名を入力 (例: C, G, Am, F, D7, Em)</li>
+        <li>「表示」ボタンでコード図を生成</li>
+        <li>追加コードは <code>chords</code> オブジェクトに追加できます</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
