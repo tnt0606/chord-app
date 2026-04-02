@@ -664,7 +664,7 @@
       if (positiveFrets.length) {
         const minPositiveFret = Math.min(...positiveFrets);
         const maxPositiveFret = Math.max(...positiveFrets);
-        if (minPositiveFret > 1 || maxPositiveFret > fretCount) {
+        if (maxPositiveFret >= 5) {
           displayStartFret = minPositiveFret;
         }
         if (maxPositiveFret - displayStartFret + 1 > fretCount) {
